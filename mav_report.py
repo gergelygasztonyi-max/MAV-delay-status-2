@@ -96,7 +96,7 @@ def get_report(target_date: date, window_start: time, window_end: time):
                     continue
                 route = leg.get("route") or {}
                 raw_train = str(trip.get("tripShortName") or route.get("shortName") or "—")
-                number_match = re.match(r"^\\s*(\\d{3,6})\\b", raw_train)
+                number_match = re.match(r"^\s*(\d{3,6})\b", raw_train)
                 train_number = number_match.group(1) if number_match else raw_train
                 headsign = trip.get("tripHeadsign") or route.get("longName") or (leg.get("to") or {}).get("name") or destination
                 grounded_destination = headsign if headsign in ("Budapest-Kelenföld", "Budapest-Déli") else destination
