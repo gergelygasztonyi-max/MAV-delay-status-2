@@ -2,9 +2,9 @@
 
 Scheduled GitHub Actions prototype for departures from Biatorbágy between 05:55 and 07:10 toward Budapest-Kelenföld and Budapest-Déli.
 
-## Status: NOT YET VALIDATED
+## Status: live API validation passed; morning report still requires first scheduled-run confirmation
 
-The first live workflow run must confirm that the upstream MÁVPlusz/EMMA endpoint responds from GitHub-hosted runners and exposes explicit live departure estimates. An HTTP 200 response alone is not sufficient proof.
+Live API validation passed on 2026-10-09 from a GitHub-hosted runner: the MÁVPlusz/EMMA endpoint returned upcoming Biatorbágy-origin rail departures with explicit realtime estimates (sample delays included 6, 0 and 3 minutes). The first scheduled 05:55–07:10 morning-window report still needs to be checked for completeness and correct train matching.
 
 ## How it works
 
@@ -19,7 +19,7 @@ The endpoint/proxy is unofficial and can change or rate-limit requests. It is no
 
 1. Open Actions → MÁV morning status.
 2. Select Run workflow and choose the validate mode.
-3. Open the run logs. A valid test must show API_VALIDATION: PASS and a sample containing real_time=true.
+3. Open the run logs. The validation already showed API_VALIDATION: PASS and real_time=true. Re-run after upstream API changes or if the report stops working.
 4. If it fails, the project is not ready for automatic reporting. Inspect the error and adjust the API request before relying on it.
 
 The initial workflow also runs a validation on push.
