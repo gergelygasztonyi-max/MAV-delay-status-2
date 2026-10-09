@@ -1,0 +1,62 @@
+name: MÁV morning status
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mav_report.py"
+      - ".github/workflows/mav-report.yml"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Run validation against current live data or create the morning report"
+        required: true
+        type: choice
+        default: validate
+        options:
+          - validate
+          - morning
+  schedule:
+    # 06:30 Europe/Budapest during CEST. Adjust to 05:30 UTC during CET.
+    - cron: "30 4 * * 1-5"
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate live API (on push or manual validation)
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'validate')
+        env:
+          REPORT_MODE: validate
+        run: python mav_report.py
+
+      - name: Generate morning report
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'morning')
+        env:
+          REPORT_MODE: morning
+        run: |
+          python mav_report.py | tee report-console.md
+          cat report-console.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report files
+        if: always() && hashFiles('out/report.md') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: mav-delay-report
+          path: |
+            out/report.md
+            out/report.json
+          if-no-files-found: warn
+          retention-days: 14
