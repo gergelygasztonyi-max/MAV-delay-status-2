@@ -87,15 +87,16 @@ def get_report(target_date: date, window_start: time, window_end: time):
                 trip = leg.get("trip") or {}
                 if not str(trip.get("gtfsId") or "").startswith("1:"):
                     continue
-                live_departure = local_time(leg.get("startTime"))
-                if not live_departure or not (start_dt <= live_departure <= end_dt):
-                    continue
                 delay_seconds = leg.get("departureDelay")
                 has_live = leg.get("realTime") is True and delay_seconds is not None
-                scheduled = live_departure - timedelta(seconds=float(delay_seconds)) if has_live else None
+                origin = leg.get("from") or {}
+                observed_departure = local_time(origin.get("departureTime")) or local_time(leg.get("startTime"))
+                scheduled = observed_departure - timedelta(seconds=float(delay_seconds)) if (has_live and observed_departure) else observed_departure
+                if not scheduled or not (start_dt <= scheduled <= end_dt):
+                    continue
                 route = leg.get("route") or {}
                 rows.append({
-                    "scheduled": scheduled, "live": live_departure if has_live else None,
+                    "scheduled": scheduled, "live": observed_departure if has_live else None,
                     "delay_minutes": round(float(delay_seconds) / 60) if has_live else None,
                     "train": trip.get("tripShortName") or route.get("shortName") or "—",
                     "headsign": trip.get("tripHeadsign") or route.get("longName") or (leg.get("to") or {}).get("name") or destination,
