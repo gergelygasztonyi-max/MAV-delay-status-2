@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Biatorbágy morning MÁV live-status report."""
 from __future__ import annotations
-import json, os, urllib.error, urllib.parse, urllib.request
+import json, os, re, urllib.error, urllib.parse, urllib.request
 from datetime import datetime, date, time, timedelta
 from zoneinfo import ZoneInfo
 
@@ -95,12 +95,16 @@ def get_report(target_date: date, window_start: time, window_end: time):
                 if not scheduled or not (start_dt <= scheduled <= end_dt):
                     continue
                 route = leg.get("route") or {}
+                raw_train = str(trip.get("tripShortName") or route.get("shortName") or "—")
+                number_match = re.match(r"^\\s*(\\d{3,6})\\b", raw_train)
+                train_number = number_match.group(1) if number_match else raw_train
+                headsign = trip.get("tripHeadsign") or route.get("longName") or (leg.get("to") or {}).get("name") or destination
+                grounded_destination = headsign if headsign in ("Budapest-Kelenföld", "Budapest-Déli") else destination
                 rows.append({
                     "scheduled": scheduled, "live": observed_departure if has_live else None,
                     "delay_minutes": round(float(delay_seconds) / 60) if has_live else None,
-                    "train": trip.get("tripShortName") or route.get("shortName") or "—",
-                    "headsign": trip.get("tripHeadsign") or route.get("longName") or (leg.get("to") or {}).get("name") or destination,
-                    "destination": destination, "real_time": has_live, "trip_id": trip.get("gtfsId"),
+                    "train": train_number, "headsign": headsign,
+                    "destination": grounded_destination, "real_time": has_live, "trip_id": trip.get("gtfsId"),
                 })
     unique = {}
     for row in rows:
