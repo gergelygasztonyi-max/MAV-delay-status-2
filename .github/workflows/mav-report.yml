@@ -17,8 +17,9 @@ on:
           - validate
           - morning
   schedule:
-    # 06:30 Europe/Budapest during CEST. Adjust to 05:30 UTC during CET.
+    # GitHub cron is UTC. Run at both candidate UTC times and gate by local time below.
     - cron: "30 4 * * 1-5"
+    - cron: "30 5 * * 1-5"
 
 permissions:
   contents: read
@@ -42,8 +43,20 @@ jobs:
           REPORT_MODE: validate
         run: python mav_report.py
 
+      - name: Check local schedule time
+        id: clock
+        if: github.event_name == 'schedule'
+        run: |
+          local_time=$(TZ=Europe/Budapest date +%H:%M)
+          echo "Europe/Budapest local time: $local_time"
+          if [ "$local_time" = "06:30" ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Generate morning report
-        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'morning')
+        if: (github.event_name == 'schedule' && steps.clock.outputs.should_run == 'true') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'morning')
         env:
           REPORT_MODE: morning
         run: |
